@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ev Fiyat Tahmini</title>
+    <style>
+        :root { color-scheme: light dark; }
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; }
+        .container { max-width: 720px; margin: 0 auto; padding: 24px; }
+        h1 { font-size: 1.5rem; margin: 0 0 16px; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; background: rgba(0,0,0,0.02); padding: 16px; border-radius: 8px; }
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.9rem; }
+        input { padding: 8px 10px; font-size: 1rem; border: 1px solid rgba(0,0,0,0.2); border-radius: 6px; }
+        .actions { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; }
+        button { padding: 10px 14px; font-size: 1rem; border-radius: 6px; border: 1px solid transparent; cursor: pointer; background: #2563eb; color: #fff; }
+        button:disabled { opacity: .6; cursor: not-allowed; }
+        .result { margin-top: 16px; font-weight: 600; }
+        .error { margin-top: 8px; color: #b91c1c; }
+        @media (max-width: 640px) { form { grid-template-columns: 1fr; } }
+    </style>
+    <!-- Basit ve mevcut renk/typografi uyumlu, minimalist tasar1m -->
+    <!-- Bu sayfa FastAPI'nin /predict u1na JSON POST g1nderen basit bir form sunar. -->
+    <!-- Model kolonlar1: Square_Footage, Num_Bedrooms, Num_Bathrooms, Year_Built, Lot_Size, Garage_Size, Neighborhood_Quality -->
+</head>
+<body>
+    <div class="container">
+        <h1>Ev Fiyat Tahmini</h1>
+        <form id="predict-form">
+            <div class="field">
+                <label for="Square_Footage">Square Footage</label>
+                <input type="number" id="Square_Footage" name="Square_Footage" required min="0" step="1" />
+            </div>
+            <div class="field">
+                <label for="Num_Bedrooms">Num Bedrooms</label>
+                <input type="number" id="Num_Bedrooms" name="Num_Bedrooms" required min="0" step="1" />
+            </div>
+            <div class="field">
+                <label for="Num_Bathrooms">Num Bathrooms</label>
+                <input type="number" id="Num_Bathrooms" name="Num_Bathrooms" required min="0" step="1" />
+            </div>
+            <div class="field">
+                <label for="Year_Built">Year Built</label>
+                <input type="number" id="Year_Built" name="Year_Built" required min="1800" max="2100" step="1" />
+            </div>
+            <div class="field">
+                <label for="Lot_Size">Lot Size</label>
+                <input type="number" id="Lot_Size" name="Lot_Size" required min="0" step="0.01" />
+            </div>
+            <div class="field">
+                <label for="Garage_Size">Garage Size</label>
+                <input type="number" id="Garage_Size" name="Garage_Size" required min="0" step="1" />
+            </div>
+            <div class="field">
+                <label for="Neighborhood_Quality">Neighborhood Quality</label>
+                <input type="number" id="Neighborhood_Quality" name="Neighborhood_Quality" required min="0" max="10" step="1" />
+            </div>
+            <div class="actions">
+                <button type="submit" id="submit-btn">Tahmin Et</button>
+                <span id="loading" style="display:none;">Hesaplan1yor...</span>
+            </div>
+        </form>
+
+        <div id="result" class="result"></div>
+        <div id="error" class="error"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('predict-form');
+        const resultEl = document.getElementById('result');
+        const errorEl = document.getElementById('error');
+        const submitBtn = document.getElementById('submit-btn');
+        const loadingEl = document.getElementById('loading');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorEl.textContent = '';
+            resultEl.textContent = '';
+            submitBtn.disabled = true;
+            loadingEl.style.display = 'inline';
+
+            const payload = {
+                Square_Footage: parseInt(document.getElementById('Square_Footage').value, 10),
+                Num_Bedrooms: parseInt(document.getElementById('Num_Bedrooms').value, 10),
+                Num_Bathrooms: parseInt(document.getElementById('Num_Bathrooms').value, 10),
+                Year_Built: parseInt(document.getElementById('Year_Built').value, 10),
+                Lot_Size: parseFloat(document.getElementById('Lot_Size').value),
+                Garage_Size: parseInt(document.getElementById('Garage_Size').value, 10),
+                Neighborhood_Quality: parseInt(document.getElementById('Neighborhood_Quality').value, 10)
+            };
+
+            try {
+                const resp = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!resp.ok) {
+                    const t = await resp.text();
+                    throw new Error(t || 'Sunucu hatas1');
+                }
+
+                const data = await resp.json();
+                // Beklenen cevap: { predicted_price: number }
+                if (typeof data.predicted_price === 'number') {
+                    resultEl.textContent = `Tahmini Fiyat: ${data.predicted_price.toFixed(2)}`;
+                } else {
+                    resultEl.textContent = 'Tahmin sonucu al1namad1.';
+                }
+            } catch (err) {
+                errorEl.textContent = err?.message || 'Bir hata olu1tu.';
+            } finally {
+                submitBtn.disabled = false;
+                loadingEl.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

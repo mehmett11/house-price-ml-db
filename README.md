@@ -21,7 +21,8 @@ DB_PORT=5432
 ```bash
 uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 ```
-psql -->
+### psql -->
+```
 CREATE DATABASE house_price;
 CREATE TABLE IF NOT EXISTS "public"."tbl_house" (
   "id" BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -34,4 +35,4 @@ CREATE TABLE IF NOT EXISTS "public"."tbl_house" (
   "Neighborhood_Quality" INTEGER NOT NULL,
   "House_Price" NUMERIC(14,2) NOT NULL
 );
-
+```
